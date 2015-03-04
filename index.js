@@ -12,12 +12,15 @@ util.inherits(AgsStream, Readable);
 function AgsStream (serviceUrl, options) {
   Readable.call(this, {objectMode: true});
 
-  //if (!serviceUrl) { throw new Error('A "serviceUrl" parameter is required.') }
-  if (!serviceUrl) { this.emit('error', new Error('A "serviceUrl" parameter is required.')) }
+  if (!serviceUrl) {
+    this.emit('error', new Error('A "serviceUrl" parameter is required.'))
+  }
 
-  this.serviceUrl    = serviceUrl;
-  this.options       = options || {};
-  this.chunkSize     = this.options.chunkSize || 50;
+  this.serviceUrl = serviceUrl;
+  this.options    = options || {};
+  this.chunkSize  = this.options.chunkSize || 50;
+  this.where      = this.options.where || '1=1';
+  this.outSR      = this.options.outSR || '4326'
 
   this._objectIdsCallback     = utils.bind(this._objectIdsCallback, this);
   this._processChunksCallback = utils.bind(this._processChunksCallback, this);
@@ -29,7 +32,7 @@ AgsStream.prototype._getObjectIds = function () {
   var qs = {
     returnIdsOnly : 'true',
     f             : 'json',
-    where         : this.options.where || '1=1'
+    where         : this.where
   };
   var objectIdsRequestOptions = {
     uri  : this.serviceUrl + '/query',
@@ -84,7 +87,7 @@ AgsStream.prototype._processChunk = function (chunk, callback) {
     outFields      : '*',
     returnGeometry : 'true',
     f              : 'json',
-    outSR          : this.options.outSR || '4326'
+    outSR          : this.outSR
   };
   var featureRequestOptions = {
     uri  : this.serviceUrl + '/query',
@@ -98,7 +101,7 @@ AgsStream.prototype._processChunk = function (chunk, callback) {
     } else {
       var features = body.features;
       me.push(features);
-      callback(null,features)
+      callback(null, features);
     }
   });
 };
@@ -107,19 +110,4 @@ AgsStream.prototype._read = function () {
   
 };
 
-var serviceUrl = 'http://gis-web.co.union.nc.us/arcgis/rest/services/PWGIS_Web/Operational_Layers/MapServer/5';
-var agsStream = new AgsStream(serviceUrl, {chunkSize: 5, where: 'objectid<100', outSR: 2264});
-
-agsStream.on('data', function (data) {
-  console.log('data: ', data[0]);
-});
-
-agsStream.on('error', function (error) {
-  console.log('error: ', error);
-});
-
-agsStream.on('end', function (data) {
-  console.log('they done')
-});
-
-agsStream.read();
+module.exports = AgsStream
