@@ -12,14 +12,14 @@ util.inherits(AgsStream, Readable);
 function AgsStream (serviceUrl, options) {
   Readable.call(this, {objectMode: true});
 
-  if (!serviceUrl) { throw new Error('A "serviceUrl" parameter is required.') }
+  //if (!serviceUrl) { throw new Error('A "serviceUrl" parameter is required.') }
+  if (!serviceUrl) { this.emit('error', new Error('A "serviceUrl" parameter is required.')) }
 
   this.serviceUrl    = serviceUrl;
   this.options       = options || {};
   this.chunkSize     = this.options.chunkSize || 50;
-  this.parallelLimit = 20;
 
-  this._objectIdsCallback = utils.bind(this._objectIdsCallback, this);
+  this._objectIdsCallback     = utils.bind(this._objectIdsCallback, this);
   this._processChunksCallback = utils.bind(this._processChunksCallback, this);
 
   this._getObjectIds();
@@ -72,7 +72,6 @@ AgsStream.prototype._processChunksCallback = function (error, results) {
   if (error) {
     this.emit('error', new Error(error));
   } else {
-    //console.log('chunks callback', results)
     this.push(null);
   }
 };
@@ -80,31 +79,12 @@ AgsStream.prototype._processChunksCallback = function (error, results) {
 AgsStream.prototype._processChunk = function (chunk, callback) {
   var me = this;
 
-  var tasks = chunk.map(function (objectId) {
-    return function (_callback) {
-      me._fetchRecord(objectId, _callback);
-    };
-  });
-
-  async.parallelLimit(tasks, this.parallelLimit, function (error, results) {
-    if (error) {
-      callback(error);
-    } else {
-      me.push(results)
-      callback(null, results);
-    }
-  });
-};
-
-AgsStream.prototype._fetchRecord = function (objectId, callback) {
-  var me = this;
-
   var qs = {
-    objectIds      : objectId,
+    objectIds      : chunk.join(','),
     outFields      : '*',
     returnGeometry : 'true',
     f              : 'json',
-    outSR          : '4326'
+    outSR          : this.options.outSR || '4326'
   };
   var featureRequestOptions = {
     uri  : this.serviceUrl + '/query',
@@ -116,19 +96,11 @@ AgsStream.prototype._fetchRecord = function (objectId, callback) {
     if (error) {
       self.emit('error', new Error(error));
     } else {
-      var agsFeature = body.features[0];
-      callback(null, agsFeature)
-      //me.push(agsFeature);
+      var features = body.features;
+      me.push(features);
+      callback(null,features)
     }
   });
-};
-
-AgsStream.prototype._processChunksCallback = function (error, results) {
-  if (error) {
-    this.emit('error', new Error(error));
-  } else {
-    this.push(results);
-  }
 };
 
 AgsStream.prototype._read = function () {
@@ -136,10 +108,10 @@ AgsStream.prototype._read = function () {
 };
 
 var serviceUrl = 'http://gis-web.co.union.nc.us/arcgis/rest/services/PWGIS_Web/Operational_Layers/MapServer/5';
-var agsStream = new AgsStream(serviceUrl, {where: 'objectid<100'});
+var agsStream = new AgsStream(serviceUrl, {chunkSize: 5, where: 'objectid<100', outSR: 2264});
 
 agsStream.on('data', function (data) {
-  console.log('data: ', data);
+  console.log('data: ', data[0]);
 });
 
 agsStream.on('error', function (error) {
