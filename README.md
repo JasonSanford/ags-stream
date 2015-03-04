@@ -28,11 +28,13 @@ agsStream.on('error', function (error) {
 agsStream.on('end', function () {
   console.log('All done.'); // There is no more data to read.
 });
+
+agsStream.read()
 ```
 
 The `service_url` parameter represents a single layer in an ArcGIS Server map service. It should look something like `http://gis-web.co.union.nc.us/arcgis/rest/services/PWGIS_Web/Operational_Layers/MapServer/5`.
 
-Options are:
+`options` is optional and accepts the following:
 
 Option | Description | Default
 ------ | ----------- | -------
