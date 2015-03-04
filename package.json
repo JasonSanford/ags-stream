@@ -1,6 +1,6 @@
 {
   "name": "ags-stream",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Stream features from an ArcGIS Server instance",
   "main": "index.js",
   "scripts": {
