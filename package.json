@@ -1,0 +1,28 @@
+{
+  "name": "ags-stream",
+  "version": "0.0.0",
+  "description": "Stream features from an ArcGIS Server instance",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/JasonSanford/ags-stream.git"
+  },
+  "keywords": [
+    "arcgis",
+    "stream"
+  ],
+  "author": "Jason Sanford",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JasonSanford/ags-stream/issues"
+  },
+  "homepage": "https://github.com/JasonSanford/ags-stream",
+  "dependencies": {
+    "async": "^0.9.0",
+    "lodash": "^3.3.1",
+    "request": "^2.53.0"
+  }
+}
