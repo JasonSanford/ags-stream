@@ -2,7 +2,7 @@
 
 ags-stream creates a [readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) of GeoJSON Features from an ArcGIS Server instance. This can be useful for scraping records from any ArcGIS Server or any other ETL process.
 
-ags-stream is currently used in [fulcrum-ags-import](https://github.com/fulcrumapp/fulcrum-ags-import) and [cartodb-ags-import](#) to import ArcGIS Server records into [Fulcrum](http://fulcrumapp.com) and [CartoDB](http://cartodb.com/).
+ags-stream is currently used in [fulcrum-ags-import](https://github.com/fulcrumapp/fulcrum-ags-import) to import ArcGIS Server records into [Fulcrum](http://fulcrumapp.com).
 
 ### Installation
 
