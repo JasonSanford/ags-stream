@@ -1,9 +1,10 @@
 var Readable = require('stream').Readable
 var util     = require('util');
 
-var async   = require('async');
-var request = require('request');
-var _       = require('lodash');
+var async       = require('async');
+var request     = require('request');
+var terraformer = require('terraformer-arcgis-parser');
+var _           = require('lodash');
 
 var utils = require('./utils');
 
@@ -30,14 +31,14 @@ function AgsStream (serviceUrl, options) {
 
 AgsStream.prototype._getObjectIds = function () {
   var qs = {
-    returnIdsOnly : 'true',
-    f             : 'json',
-    where         : this.where
+    returnIdsOnly: 'true',
+    f:             'json',
+    where:         this.where
   };
   var objectIdsRequestOptions = {
-    uri  : this.serviceUrl + '/query',
-    qs   : qs,
-    json : true
+    uri:  this.serviceUrl + '/query',
+    qs:   qs,
+    json: true
   };
 
   request(objectIdsRequestOptions, this._objectIdsCallback);
@@ -83,16 +84,16 @@ AgsStream.prototype._processChunk = function (chunk, callback) {
   var me = this;
 
   var qs = {
-    objectIds      : chunk.join(','),
-    outFields      : '*',
-    returnGeometry : 'true',
-    f              : 'json',
-    outSR          : this.outSR
+    objectIds:      chunk.join(','),
+    outFields:      '*',
+    returnGeometry: 'true',
+    f:              'json',
+    outSR:          this.outSR
   };
   var featureRequestOptions = {
-    uri  : this.serviceUrl + '/query',
-    qs   : qs,
-    json : true
+    uri:  this.serviceUrl + '/query',
+    qs:   qs,
+    json: true
   };
 
   request(featureRequestOptions, function (error, response, body) {
@@ -100,14 +101,17 @@ AgsStream.prototype._processChunk = function (chunk, callback) {
       self.emit('error', new Error(error));
     } else {
       var features = body.features;
-      me.push(features);
-      callback(null, features);
+      var geojsonFeatures = features.map(function (feature) {
+        return terraformer.parse(feature);
+      });
+      me.push(geojsonFeatures);
+      callback(null, geojsonFeatures);
     }
   });
 };
 
 AgsStream.prototype._read = function () {
-  
+
 };
 
 module.exports = AgsStream

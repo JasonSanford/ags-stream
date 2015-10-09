@@ -1,6 +1,6 @@
 ## ags-stream
 
-ags-stream creates a [readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) of records from an ArcGIS Server instance. This can be useful for scraping records from any ArcGIS Server or any other ETL process.
+ags-stream creates a [readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) of GeoJSON Features from an ArcGIS Server instance. This can be useful for scraping records from any ArcGIS Server or any other ETL process.
 
 ags-stream is currently used in [fulcrum-ags-import](https://github.com/fulcrumapp/fulcrum-ags-import) and [cartodb-ags-import](#) to import ArcGIS Server records into [Fulcrum](http://fulcrumapp.com) and [CartoDB](http://cartodb.com/).
 
@@ -15,7 +15,7 @@ var AgsStream = require('ags-stream');
 var agsStream = new AgsStream(<service_url>, <options>?)
 
 agsStream.on('data', function (data) {
-  // data is an array of features
+  // data is an array of GeoJSON features
   data.forEach(function (feature) {
     doWhatever(feature); // Add the feature to you database, write to file, whatever
   });
@@ -28,8 +28,6 @@ agsStream.on('error', function (error) {
 agsStream.on('end', function () {
   console.log('All done.'); // There is no more data to read.
 });
-
-agsStream.read()
 ```
 
 The `service_url` parameter represents a single layer in an ArcGIS Server map service. It should look something like `http://gis-web.co.union.nc.us/arcgis/rest/services/PWGIS_Web/Operational_Layers/MapServer/5`.
