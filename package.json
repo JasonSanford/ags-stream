@@ -1,6 +1,6 @@
 {
   "name": "ags-stream",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Stream features from an ArcGIS Server instance",
   "main": "index.js",
   "scripts": {
@@ -28,8 +28,17 @@
       "node": true
     },
     "rules": {
-      "semi": [2, "always"],
-      "quotes": [2, "single", {"avoidEscape": true}],
+      "semi": [
+        2,
+        "always"
+      ],
+      "quotes": [
+        2,
+        "single",
+        {
+          "avoidEscape": true
+        }
+      ],
       "prefer-const": 2,
       "no-var": 2
     }
