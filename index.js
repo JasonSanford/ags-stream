@@ -1,117 +1,104 @@
-var Readable = require('stream').Readable
-var util     = require('util');
+const { Readable } = require('stream');
 
-var async       = require('async');
-var request     = require('request');
-var terraformer = require('terraformer-arcgis-parser');
-var _           = require('lodash');
+const async = require('async');
+const request = require('request');
+const terraformer = require('terraformer-arcgis-parser');
+const _ = require('lodash');
 
-var utils = require('./utils');
+class AgsStream extends Readable {
+  constructor(serviceUrl, options) {
+    super({objectMode: true});
 
-util.inherits(AgsStream, Readable);
+    if (!serviceUrl) {
+      this.emit('error', new Error('A "serviceUrl" parameter is required.'));
+    }
 
-function AgsStream (serviceUrl, options) {
-  Readable.call(this, {objectMode: true});
+    this.serviceUrl = serviceUrl;
+    this.options = options || {};
+    this.chunkSize = this.options.chunkSize || 50;
+    this.where = this.options.where || '1=1';
+    this.outSR = this.options.outSR || '4326';
+    this.qs = this.options.qs || {};
 
-  if (!serviceUrl) {
-    this.emit('error', new Error('A "serviceUrl" parameter is required.'))
+    this._objectIdsCallback = this._objectIdsCallback.bind(this);
+    this._processChunksCallback = this._processChunksCallback.bind(this);
+
+    this._getObjectIds();
   }
 
-  this.serviceUrl = serviceUrl;
-  this.options    = options || {};
-  this.chunkSize  = this.options.chunkSize || 50;
-  this.where      = this.options.where || '1=1';
-  this.outSR      = this.options.outSR || '4326'
+  _getObjectIds() {
+    const qs = Object.assign({
+      returnIdsOnly: 'true',
+      f: 'json',
+      where: this.where
+    }, this.qs);
 
-  this._objectIdsCallback     = utils.bind(this._objectIdsCallback, this);
-  this._processChunksCallback = utils.bind(this._processChunksCallback, this);
+    const objectIdsRequestOptions = {
+      uri: `${this.serviceUrl}/query`,
+      qs: qs,
+      json: true
+    };
+  
+    request(objectIdsRequestOptions, this._objectIdsCallback);
+  }
 
-  this._getObjectIds();
+  _objectIdsCallback(error, response, body) {
+    if (error) {
+      this.emit('error', new Error(error));
+    } else {
+      const objectIds = body.objectIds;
+
+      this.objectIdChunks = _.chain(objectIds).groupBy((element, index) => Math.floor(index / this.chunkSize)).toArray().value();
+
+      this._processChunks();
+    }
+  }
+
+  _processChunks() {
+    const tasks = this.objectIdChunks.map((chunk) => {
+      return (callback) => {
+        this._processChunk(chunk, callback);
+      };
+    });
+
+    async.series(tasks, this._processChunksCallback);
+  }
+
+  _processChunksCallback(error) {
+    if (error) {
+      this.emit('error', new Error(error));
+    } else {
+      this.push(null);
+    }
+  }
+
+  _processChunk(chunk, callback) {
+    const qs = {
+      objectIds: chunk.join(','),
+      outFields: '*',
+      returnGeometry: 'true',
+      f: 'json',
+      outSR: this.outSR
+    };
+
+    const featureRequestOptions = {
+      uri: `${this.serviceUrl}/query`,
+      qs: qs,
+      json: true
+    };
+
+    request(featureRequestOptions, (error, response, body) => {
+      if (error) {
+        this.emit('error', new Error(error));
+      } else {
+        const geojsonFeatures = body.features.map(feature => terraformer.parse(feature));
+        this.push(geojsonFeatures);
+        callback(null, geojsonFeatures);
+      }
+    });
+  }
+
+  _read() {}
 }
 
-AgsStream.prototype._getObjectIds = function () {
-  var qs = {
-    returnIdsOnly: 'true',
-    f:             'json',
-    where:         this.where
-  };
-  var objectIdsRequestOptions = {
-    uri:  this.serviceUrl + '/query',
-    qs:   qs,
-    json: true
-  };
-
-  request(objectIdsRequestOptions, this._objectIdsCallback);
-};
-
-AgsStream.prototype._objectIdsCallback = function (error, response, body) {
-  var chunkSize = this.chunkSize;
-
-  if (error) {
-    this.emit('error', new Error(error));
-  } else {
-    var objectIds = body.objectIds;
-
-    this.objectIdChunks = _.chain(objectIds).groupBy(function(element, index){
-      return Math.floor(index / chunkSize);
-    }).toArray().value();;
-
-    this._processChunks();
-  }
-};
-
-AgsStream.prototype._processChunks = function () {
-  var me = this;
-
-  var tasks = this.objectIdChunks.map(function (chunk) {
-    return function(callback) {
-      me._processChunk(chunk, callback);
-    };
-  });
-
-  async.series(tasks, this._processChunksCallback);
-};
-
-AgsStream.prototype._processChunksCallback = function (error, results) {
-  if (error) {
-    this.emit('error', new Error(error));
-  } else {
-    this.push(null);
-  }
-};
-
-AgsStream.prototype._processChunk = function (chunk, callback) {
-  var me = this;
-
-  var qs = {
-    objectIds:      chunk.join(','),
-    outFields:      '*',
-    returnGeometry: 'true',
-    f:              'json',
-    outSR:          this.outSR
-  };
-  var featureRequestOptions = {
-    uri:  this.serviceUrl + '/query',
-    qs:   qs,
-    json: true
-  };
-
-  request(featureRequestOptions, function (error, response, body) {
-    if (error) {
-      self.emit('error', new Error(error));
-    } else {
-      var features = body.features;
-      var geojsonFeatures = features.map(function (feature) {
-        return terraformer.parse(feature);
-      });
-      me.push(geojsonFeatures);
-      callback(null, geojsonFeatures);
-    }
-  });
-};
-
-AgsStream.prototype._read = function () {
-
-};
-
-module.exports = AgsStream
+module.exports = AgsStream;

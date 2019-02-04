@@ -39,3 +39,4 @@ Option | Description | Default
 `chunkSize` | The number of features to fetch per request to the AGS instance | 50
 `where` | The where clause for querying the service layer | '1=1' (all features)
 `outSR` | The [srid](http://spatialreference.org/) for the returned geometry | 4326 (lat, lng)
+`qs` | An object of query strings to append to the url. These will be url encoded automatically. | `null`
